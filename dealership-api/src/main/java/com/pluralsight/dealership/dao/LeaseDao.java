@@ -2,6 +2,8 @@ package com.pluralsight.dealership.dao;
 
 import com.pluralsight.dealership.model.LeaseContract;
 import com.pluralsight.dealership.model.Vehicle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -9,10 +11,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class LeaseDao {
     private DataSource dataSource;
 
-
+    @Autowired
     public LeaseDao(DataSource dataSource) {
         this.dataSource = dataSource;
     }

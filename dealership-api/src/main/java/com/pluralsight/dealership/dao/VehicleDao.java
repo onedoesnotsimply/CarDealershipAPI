@@ -1,6 +1,8 @@
 package com.pluralsight.dealership.dao;
 
 import com.pluralsight.dealership.model.Vehicle;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -10,11 +12,82 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class VehicleDao {
     private DataSource dataSource;
 
+    @Autowired
     public VehicleDao(DataSource dataSource){
         this.dataSource=dataSource;
+    }
+
+    public void updateVehicle(int vin, Vehicle vehicle){
+        String query = "UPDATE vehicles SET vin = ?, year = ?, make = ?, model = ?, " +
+                "vehicleType = ?, color = ?, odometer = ?, price = ?, sold = ? WHERE vin = ?";
+
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(query);){
+
+            preparedStatement.setInt(1,vehicle.getVin());
+            preparedStatement.setInt(2,vehicle.getYear());
+            preparedStatement.setString(3, vehicle.getMake());
+            preparedStatement.setString(4, vehicle.getModel());
+            preparedStatement.setString(5,vehicle.getVehicleType());
+            preparedStatement.setString(6, vehicle.getColor());
+            preparedStatement.setInt(7,vehicle.getOdometer());
+            preparedStatement.setDouble(8,vehicle.getPrice());
+            preparedStatement.setBoolean(9,vehicle.isSold());
+            preparedStatement.setInt(10,vin);
+
+            int rows = preparedStatement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<Vehicle> getVehicle(double minPrice,double maxPrice,String make,String model,int minYear,
+                              int maxYear,String color, int minMiles,int maxMiles,String type) {
+        List<Vehicle> vehicles = new ArrayList<>();
+        String query = "SELECT * FROM vehicles WHERE " +
+                "price BETWEEN ? AND ? AND " +
+                "make LIKE ? AND model LIKE ? AND " +
+                "year BETWEEN ? AND ? AND " +
+                "color LIKE ? AND " +
+                "odometer BETWEEN ? AND ? AND " +
+                "vehicleType LIKE ?";
+
+        try(Connection connection = dataSource.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(query)){
+
+            preparedStatement.setDouble(1,minPrice);
+            preparedStatement.setDouble(2,maxPrice);
+            preparedStatement.setString(3,make);
+            preparedStatement.setString(4,model);
+            preparedStatement.setInt(5,minYear);
+            preparedStatement.setInt(6,maxYear);
+            preparedStatement.setString(7,color);
+            preparedStatement.setInt(8,minMiles);
+            preparedStatement.setInt(9,maxMiles);
+            preparedStatement.setString(10,type);
+
+            try(ResultSet resultSet = preparedStatement.executeQuery();){
+                if (resultSet.next()){
+                    do{
+                        int vin = resultSet.getInt(1);
+                        int year = resultSet.getInt(2);
+                        int odometer = resultSet.getInt(7);
+                        double price = resultSet.getDouble(8);
+
+                        Vehicle vehicle = new Vehicle(vin,year,make,model,type,color,odometer,price);
+                        vehicles.add(vehicle);
+                    } while (resultSet.next());
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return vehicles;
     }
 
     public void removeVehicle(int vin) {
@@ -31,25 +104,18 @@ public class VehicleDao {
             int rows1 = preparedStatement1.executeUpdate();
             int rows2 = preparedStatement2.executeUpdate();
 
-            if (rows1 > 0){
-                System.out.println("Vehicle removed successfully");
-            }
-
-
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void addVehicle(int dealershipId, Vehicle vehicle){
+    public Vehicle addVehicle(Vehicle vehicle){
         String query = "INSERT INTO vehicles " +
                 "(vin, year, make, model, vehicleType, color, odometer, price, sold) " +
                 "VALUES (?,?,?,?,?,?,?,?,0)";
-        String query2 = "INSERT INTO inventory (dealership_id, vin) VALUES (?, ?)";
 
         try(Connection connection = dataSource.getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
-            PreparedStatement preparedStatement2 = connection.prepareStatement(query2);){
+            PreparedStatement preparedStatement = connection.prepareStatement(query);){
 
             preparedStatement.setInt(1,vehicle.getVin());
             preparedStatement.setInt(2,vehicle.getYear());
@@ -60,21 +126,12 @@ public class VehicleDao {
             preparedStatement.setInt(7,vehicle.getOdometer());
             preparedStatement.setDouble(8,vehicle.getPrice());
 
-            preparedStatement2.setInt(1,dealershipId);
-            preparedStatement2.setInt(2, vehicle.getVin());
-
             int rows = preparedStatement.executeUpdate();
-            int rows2 = preparedStatement2.executeUpdate();
-
-            //System.out.printf("%d rows updated",rows);
-            if (rows > 0) {
-                System.out.println("Vehicle added successfully");
-            }
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
+        return vehicle;
     }
 
     public Vehicle getVehicleByVin(int searchVin) {

@@ -1,6 +1,8 @@
 package com.pluralsight.dealership.dao;
 
 import com.pluralsight.dealership.model.Dealership;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -10,9 +12,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class DealershipDao {
     private DataSource dataSource;
 
+    @Autowired
     public DealershipDao(DataSource dataSource){
         this.dataSource=dataSource;
     }
